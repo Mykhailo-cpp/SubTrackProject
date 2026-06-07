@@ -122,5 +122,5 @@ src/main/java/com/subtrack/
 
 | Name | Role |
 |------|------|
-| [Your Name] | Backend Developer + Analyst |
-| [Teammate Name] | Full-stack Developer + QA |
+| [Mykhailo Osadchuk] | Backend Developer + Analyst |
+| [Karyna Yatsenko] | Full-stack Developer + QA |
