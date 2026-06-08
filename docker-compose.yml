@@ -6,8 +6,8 @@ services:
     container_name: subtrack-postgres
     environment:
       POSTGRES_DB: subtrack
-      POSTGRES_USER: subtrack_user
-      POSTGRES_PASSWORD: subtrack_pass
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGTZ: UTC
     ports:
       - "5433:5432"
