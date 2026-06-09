@@ -1,8 +1,11 @@
 package com.subtrack.controller;
 
+import com.subtrack.dto.SpendingSummaryResponse;
 import com.subtrack.dto.SubscriptionRequest;
 import com.subtrack.dto.SubscriptionResponse;
+import com.subtrack.service.SpendingService;
 import com.subtrack.service.SubscriptionService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -41,6 +44,9 @@ public class SubscriptionController {
     /** Service encapsulating subscription business logic. */
     private final SubscriptionService subscriptionService;
 
+    /** Service for computing spending summaries for the current user. */
+    private final SpendingService spendingService;
+
     /** Assembler that attaches HATEOAS links to responses. */
     private final SubscriptionModelAssembler assembler;
 
@@ -51,8 +57,10 @@ public class SubscriptionController {
      * @param assembler           the HATEOAS model assembler
      */
     public SubscriptionController(SubscriptionService subscriptionService,
+                                  SpendingService spendingService,
                                   SubscriptionModelAssembler assembler) {
         this.subscriptionService = subscriptionService;
+        this.spendingService = spendingService;
         this.assembler = assembler;
     }
 
@@ -126,5 +134,19 @@ public class SubscriptionController {
     public ResponseEntity<Void> deleteSubscription(@PathVariable Long id) {
         subscriptionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Returns a spending summary for the authenticated user, grouped by category.
+     *
+     * <p>Only active subscriptions are included. All prices are normalised to
+     * monthly and yearly equivalents in their original currencies.</p>
+     *
+     * @return HTTP 200 with the spending summary
+     */
+    @GetMapping("/summary")
+    @Operation(summary = "Get monthly and yearly spending summary grouped by category")
+    public ResponseEntity<SpendingSummaryResponse> getSpendingSummary() {
+        return ResponseEntity.ok(spendingService.getSummaryForCurrentUser());
     }
 }
