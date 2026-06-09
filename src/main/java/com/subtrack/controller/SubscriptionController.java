@@ -1,8 +1,10 @@
 package com.subtrack.controller;
 
+import com.subtrack.dto.CurrencyConversionResponse;
 import com.subtrack.dto.SpendingSummaryResponse;
 import com.subtrack.dto.SubscriptionRequest;
 import com.subtrack.dto.SubscriptionResponse;
+import com.subtrack.service.CurrencyService;
 import com.subtrack.service.SpendingService;
 import com.subtrack.service.SubscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,14 +13,7 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -50,6 +45,8 @@ public class SubscriptionController {
     /** Assembler that attaches HATEOAS links to responses. */
     private final SubscriptionModelAssembler assembler;
 
+    private final CurrencyService currencyService;
+
     /**
      * Creates the controller with its required collaborators.
      *
@@ -58,10 +55,12 @@ public class SubscriptionController {
      */
     public SubscriptionController(SubscriptionService subscriptionService,
                                   SpendingService spendingService,
-                                  SubscriptionModelAssembler assembler) {
+                                  SubscriptionModelAssembler assembler,
+                                  CurrencyService currencyService) {
         this.subscriptionService = subscriptionService;
         this.spendingService = spendingService;
         this.assembler = assembler;
+        this.currencyService = currencyService;
     }
 
     /**
@@ -148,5 +147,27 @@ public class SubscriptionController {
     @Operation(summary = "Get monthly and yearly spending summary grouped by category")
     public ResponseEntity<SpendingSummaryResponse> getSpendingSummary() {
         return ResponseEntity.ok(spendingService.getSummaryForCurrentUser());
+    }
+
+    /**
+     * Converts a subscription's price to the requested currency.
+     *
+     * <p>Ownership is enforced — requesting a subscription that does not exist
+     * or belongs to another user yields HTTP 404. The original price and currency
+     * are preserved in the response alongside the converted amount and the
+     * exchange rate applied.</p>
+     *
+     * @param id             the id of the subscription to convert
+     * @param targetCurrency the ISO 4217 target currency code (e.g. {@code "USD"})
+     * @return HTTP 200 with the conversion result;
+     *         HTTP 404 if the subscription does not exist or belongs to another user;
+     *         HTTP 400 if the target currency code is unsupported
+     */
+    @GetMapping("/{id}/convert")
+    @Operation(summary = "Convert a subscription's price to another currency")
+    public ResponseEntity<CurrencyConversionResponse> convertCurrency(
+            @PathVariable Long id,
+            @RequestParam String targetCurrency) {
+        return ResponseEntity.ok(currencyService.convert(id, targetCurrency));
     }
 }
