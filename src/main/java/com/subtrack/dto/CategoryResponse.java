@@ -1,13 +1,12 @@
 package com.subtrack.dto;
 
-import com.subtrack.entity.Category;
-
 /**
  * Response payload representing a category returned to the client.
  *
- * <p>Exposes only the safe, presentational fields of a {@link Category} and
+ * Exposes only the safe, presentational fields of a category and
  * deliberately omits the {@code subscriptions} association to avoid leaking
- * unrelated data and to prevent serialisation cycles.</p>
+ * unrelated data and to prevent serialisation cycles. Mapping from the entity
+ * is performed by {@code com.subtrack.mapper.CategoryMapper}.
  */
 public class CategoryResponse {
 
@@ -22,33 +21,6 @@ public class CategoryResponse {
 
     /** Default constructor. */
     public CategoryResponse() {
-    }
-
-    /**
-     * Creates a response with the given values.
-     *
-     * @param id          the category id
-     * @param name        the category name
-     * @param description the description
-     */
-    public CategoryResponse(Long id, String name, String description) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-    }
-
-    /**
-     * Maps a {@link Category} entity to a response DTO.
-     *
-     * @param category the entity to convert
-     * @return a populated {@link CategoryResponse}
-     */
-    public static CategoryResponse fromEntity(Category category) {
-        return new CategoryResponse(
-                category.getId(),
-                category.getName(),
-                category.getDescription()
-        );
     }
 
     /**
