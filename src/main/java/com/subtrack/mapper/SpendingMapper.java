@@ -1,5 +1,6 @@
 package com.subtrack.mapper;
 
+import com.subtrack.dto.CurrencyConversionResponse;
 import com.subtrack.dto.SpendingSummaryResponse.CategorySummary;
 import com.subtrack.dto.SpendingSummaryResponse.SubscriptionSummary;
 import com.subtrack.entity.Subscription;
@@ -53,4 +54,25 @@ public interface SpendingMapper {
     CategorySummary toCategorySummary(
             String categoryName,
             List<SubscriptionSummary> subscriptions);
+
+    /**
+     * Assembles a {@link CurrencyConversionResponse} from a subscription entity
+     * and the externally fetched conversion data.
+     *
+     * @param subscription   the subscription supplying the original price and currency
+     * @param convertedPrice the converted price, calculated by the service
+     * @param targetCurrency the ISO 4217 target currency code
+     * @param exchangeRate   the exchange rate applied, fetched from the external API
+     * @return the assembled currency conversion response record
+     */
+    @Mapping(target = "originalPrice", source = "subscription.price")
+    @Mapping(target = "originalCurrency", source = "subscription.currency")
+    @Mapping(target = "convertedPrice", source = "convertedPrice")
+    @Mapping(target = "targetCurrency", source = "targetCurrency")
+    @Mapping(target = "exchangeRate", source = "exchangeRate")
+    CurrencyConversionResponse toCurrencyConversionResponse(
+            Subscription subscription,
+            BigDecimal convertedPrice,
+            String targetCurrency,
+            BigDecimal exchangeRate);
 }
