@@ -5,6 +5,7 @@ import com.subtrack.dto.CategoryResponse;
 import com.subtrack.entity.Category;
 import com.subtrack.exception.DuplicateResourceException;
 import com.subtrack.exception.ResourceNotFoundException;
+import com.subtrack.mapper.CategoryMapper;
 import com.subtrack.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,8 @@ import java.util.List;
  * <p>Read operations run in read-only transactions; mutating operations run
  * in read-write transactions. Name uniqueness is enforced before persisting,
  * raising a {@link DuplicateResourceException} (HTTP 409) on conflict, and
- * missing categories raise a {@link ResourceNotFoundException} (HTTP 404).</p>
+ * missing categories raise a {@link ResourceNotFoundException} (HTTP 404).
+ * Entity/DTO conversion is delegated to {@link CategoryMapper}.</p>
  */
 @Service
 @Transactional(readOnly = true)
@@ -27,28 +29,31 @@ public class CategoryServiceImpl implements CategoryService {
     /** Repository providing persistence operations for categories. */
     private final CategoryRepository categoryRepository;
 
+    /** Mapper converting between category entities and DTOs. */
+    private final CategoryMapper categoryMapper;
+
     /**
-     * Creates the service with its required repository.
+     * Creates the service with its required collaborators.
      *
      * @param categoryRepository the category repository
+     * @param categoryMapper     the category mapper
      */
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository,
+                               CategoryMapper categoryMapper) {
         this.categoryRepository = categoryRepository;
+        this.categoryMapper = categoryMapper;
     }
 
     /** {@inheritDoc} */
     @Override
     public List<CategoryResponse> getAllCategories() {
-        return categoryRepository.findAll().stream()
-                .map(CategoryResponse::fromEntity)
-                .toList();
+        return categoryMapper.toResponseList(categoryRepository.findAll());
     }
 
     /** {@inheritDoc} */
     @Override
     public CategoryResponse getCategoryById(Long id) {
-        Category category = findCategoryOrThrow(id);
-        return CategoryResponse.fromEntity(category);
+        return categoryMapper.toResponse(findCategoryOrThrow(id));
     }
 
     /** {@inheritDoc} */
@@ -59,9 +64,9 @@ public class CategoryServiceImpl implements CategoryService {
             throw new DuplicateResourceException(
                     "Category already exists with name: " + request.getName());
         }
-        Category category = new Category(request.getName(), request.getDescription());
+        Category category = categoryMapper.toEntity(request);
         Category saved = categoryRepository.save(category);
-        return CategoryResponse.fromEntity(saved);
+        return categoryMapper.toResponse(saved);
     }
 
     /** {@inheritDoc} */
@@ -78,10 +83,9 @@ public class CategoryServiceImpl implements CategoryService {
                     "Category already exists with name: " + request.getName());
         }
 
-        category.setName(request.getName());
-        category.setDescription(request.getDescription());
+        categoryMapper.updateEntity(request, category);
         Category saved = categoryRepository.save(category);
-        return CategoryResponse.fromEntity(saved);
+        return categoryMapper.toResponse(saved);
     }
 
     /** {@inheritDoc} */
