@@ -1,7 +1,6 @@
 package com.subtrack.dto;
 
 import com.subtrack.entity.BillingCycle;
-import com.subtrack.entity.Subscription;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,7 +13,8 @@ import java.time.LocalDate;
  * deliberately omitted: subscriptions are always returned in the context of
  * the authenticated user, so echoing the user back adds nothing and avoids a
  * serialisation cycle. HATEOAS links are attached by the controller layer via
- * an {@code EntityModel} wrapper rather than being held on this DTO.
+ * an {@code EntityModel} wrapper rather than being held on this DTO. Mapping
+ * from the entity is performed by {@code com.subtrack.mapper.SubscriptionMapper}.
  */
 public class SubscriptionResponse {
 
@@ -50,32 +50,6 @@ public class SubscriptionResponse {
 
     /** Default constructor. */
     public SubscriptionResponse() {
-    }
-
-    /**
-     * Maps a {@link Subscription} entity to a response DTO.
-     *
-     * Must be invoked within an active persistence context, since it reads
-     * the lazily-loaded category.
-     *
-     * @param s the entity to convert
-     * @return a populated {@link SubscriptionResponse}
-     */
-    public static SubscriptionResponse fromEntity(Subscription s) {
-        SubscriptionResponse r = new SubscriptionResponse();
-        r.id = s.getId();
-        r.name = s.getName();
-        r.description = s.getDescription();
-        r.price = s.getPrice();
-        r.currency = s.getCurrency();
-        r.billingCycle = s.getBillingCycle();
-        r.nextRenewalDate = s.getNextRenewalDate();
-        r.active = s.isActive();
-        if (s.getCategory() != null) {
-            r.categoryId = s.getCategory().getId();
-            r.categoryName = s.getCategory().getName();
-        }
-        return r;
     }
 
     /** @return the id */
