@@ -12,37 +12,306 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
 
+    <!-- Order matters; defer keeps them sequential and runs before the shell mounts. -->
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script defer src="js/config.js"></script>
     <script defer src="js/auth.js"></script>
     <script defer src="js/api.js"></script>
     <script defer src="js/layout.js"></script>
+    <script defer src="js/subsciptions.js?v=2"></script>
 
-    <!--
-      Pattern for feature tickets (e.g. #26):
-      The shell rebuilds #page-content, so wait for the layout:ready event before
-      querying the page DOM or calling the API.
+    <style>
+        /* Page-scoped styles for the subscriptions table and its modals.
+           Shared chrome lives in app.css; these belong with the page. */
+        .subs-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .subs-toolbar .count {
+            color: var(--st-muted);
+            font-size: .92rem;
+        }
+        .subs-toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .subs-search {
+            width: 220px;
+            max-width: 100%;
+        }
+        .subs-table thead th.sortable {
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .subs-table thead th.sortable:hover { color: var(--st-fg); }
+        .subs-table thead th.sort-active { color: var(--st-fg); }
+        .sort-icon { font-style: normal; opacity: .6; font-size: .8em; }
 
-        document.addEventListener("layout:ready", async () => {
-          const data = await Api.get("/subscriptions");
-          const subs = Api.unwrapCollection(data, "subscriptionResponseList");
-          // render add / edit / delete UI here
-        });
-    -->
+        .subs-table {
+            margin: 0;
+            --bs-table-bg: transparent;
+        }
+        .subs-table thead th {
+            font-family: var(--st-font-display);
+            font-weight: 600;
+            font-size: .76rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--st-muted);
+            border-bottom: 1px solid var(--st-border);
+            padding: 12px 14px;
+            white-space: nowrap;
+        }
+        .subs-table tbody td {
+            padding: 14px;
+            border-bottom: 1px solid var(--st-border);
+            vertical-align: middle;
+        }
+        .subs-table tbody tr:last-child td { border-bottom: none; }
+        .subs-table tbody tr.is-inactive { opacity: .62; }
+
+        .st-name { font-weight: 600; }
+        .st-sub {
+            color: var(--st-muted);
+            font-size: .82rem;
+            margin-top: 2px;
+        }
+        .st-money { font-size: .95rem; white-space: nowrap; }
+        .st-nowrap { white-space: nowrap; }
+
+        .st-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: .72rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 3px 9px;
+            line-height: 1.2;
+        }
+        .st-badge--active {
+            color: var(--st-brand-700);
+            background: rgba(15, 118, 110, .10);
+        }
+        .st-badge--reminder {
+            color: #b1481f;
+            background: rgba(226, 104, 60, .12);
+        }
+        .st-badge--muted {
+            color: var(--st-muted);
+            background: rgba(100, 116, 113, .12);
+        }
+
+        .subs-empty {
+            text-align: center;
+            padding: 48px 24px;
+        }
+        .subs-empty h2 { font-size: 1.1rem; margin-bottom: 6px; }
+        .subs-empty p { color: var(--st-muted); margin-bottom: 18px; }
+
+        /* Modal niceties to match the app palette. */
+        .modal-content { border-radius: var(--st-radius); border: 1px solid var(--st-border); }
+        .modal-header { border-bottom: 1px solid var(--st-border); }
+        .modal-title { font-family: var(--st-font-display); font-weight: 600; }
+        .form-label { font-weight: 500; font-size: .88rem; }
+        .form-hint { color: var(--st-muted); font-size: .78rem; margin-top: 3px; }
+
+        /* The reminder opt-in gets a soft callout so its purpose is obvious. */
+        .reminder-box {
+            border: 1px solid var(--st-border);
+            background: #fbfaf7;
+            border-radius: var(--st-radius-sm);
+            padding: 12px 14px;
+        }
+        .reminder-box .form-check-label { font-weight: 500; }
+        .reminder-box .reminder-help {
+            color: var(--st-muted);
+            font-size: .78rem;
+            margin: 4px 0 0 1.6em;
+        }
+    </style>
 </head>
 <body data-page="subscriptions" data-title="Subscriptions">
+<!-- The layout wraps everything below in the navbar + sidebar shell. Note that
+     layout.js keeps ONLY the contents of #page-content, so the modals must live
+     inside it too — anything placed outside is discarded on mount. -->
 <div id="page-content">
     <div class="page-head">
         <h1>Subscriptions</h1>
         <p>Everything you're paying for, in one list.</p>
     </div>
 
-    <div class="st-placeholder">
-        <span class="tag">Ticket #26</span>
-        <h2 class="h5 mb-2">Subscription list with add / edit / delete</h2>
-        <p class="mb-0">The subscriptions table and its create, edit, and delete actions will live here,
-            backed by <code>/api/subscriptions</code>.<br />
-            Navbar, sidebar, auth, and the API client are already wired up.</p>
+    <!-- Loading state -->
+    <div id="subsLoading" class="st-card text-center text-muted">
+        Loading your subscriptions…
+    </div>
+
+    <!-- Error state -->
+    <div id="subsError" class="alert alert-danger d-none" role="alert"></div>
+
+    <!-- Content -->
+    <div id="subsContent" class="d-none">
+        <div class="subs-toolbar">
+            <div class="subs-toolbar-left">
+                <span class="count" id="subsCount"></span>
+                <input type="search" class="form-control form-control-sm subs-search"
+                       id="subsSearch" placeholder="Search by name…" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" id="subsAddBtn">
+                + Add subscription
+            </button>
+        </div>
+
+        <!-- Empty state -->
+        <div id="subsEmpty" class="st-card subs-empty d-none">
+            <h2>No subscriptions yet</h2>
+            <p>Add your first subscription to start tracking what you pay.</p>
+            <button type="button" class="btn btn-primary" id="subsEmptyAddBtn">
+                + Add subscription
+            </button>
+        </div>
+
+        <!-- Table -->
+        <div id="subsTableWrap" class="st-card p-0 d-none">
+            <div class="table-responsive">
+                <table class="table subs-table align-middle">
+                    <thead>
+                    <tr>
+                        <th class="sortable" id="sortTh-name">Name<span class="sort-icon"> ↑</span></th>
+                        <th class="sortable" id="sortTh-price">Price<span class="sort-icon"> ↕</span></th>
+                        <th>Billing cycle</th>
+                        <th class="sortable" id="sortTh-renewal">Renewal date<span class="sort-icon"> ↕</span></th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="subsTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================
+         Create / edit modal — kept inside #page-content so it survives the
+         layout mount (which preserves only this element's contents).
+         ================================================================== -->
+    <div class="modal fade" id="subModal" tabindex="-1" aria-labelledby="subModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="subForm" novalidate>
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="subModalTitle">Add subscription</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="subFormError" class="alert alert-danger d-none" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label for="fName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="fName" maxlength="100"
+                                   placeholder="e.g. Netflix" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="fDescription" class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
+                            <input type="text" class="form-control" id="fDescription" maxlength="255"
+                                   placeholder="e.g. Family plan" />
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-7">
+                                <label for="fPrice" class="form-label">Price</label>
+                                <input type="number" class="form-control" id="fPrice"
+                                       min="0.01" step="0.01" placeholder="0.00" required />
+                            </div>
+                            <div class="col-5">
+                                <label for="fCurrency" class="form-label">Currency</label>
+                                <input type="text" class="form-control text-uppercase" id="fCurrency"
+                                       maxlength="3" placeholder="EUR" required />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-0">
+                            <div class="col-6">
+                                <label for="fCycle" class="form-label">Billing cycle</label>
+                                <select class="form-select" id="fCycle"></select>
+                            </div>
+                            <div class="col-6">
+                                <label for="fRenewal" class="form-label">Next renewal</label>
+                                <input type="date" class="form-control" id="fRenewal" required />
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label for="fCategory" class="form-label">Category</label>
+                            <select class="form-select" id="fCategory"></select>
+                            <div class="form-hint">
+                                Manage the list on the <a href="categories.html">Categories</a> page.
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="fActive" checked />
+                            <label class="form-check-label" for="fActive">Active subscription</label>
+                        </div>
+
+                        <!-- Renewal reminder opt-in. Backend support already exists
+                             (renewalReminderEnabled on the subscription); this is the
+                             user's per-subscription consent toggle. -->
+                        <div class="reminder-box">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="fReminder" />
+                                <label class="form-check-label" for="fReminder">
+                                    Email me before this renews
+                                </label>
+                            </div>
+                            <p class="reminder-help mb-0">
+                                We'll send a reminder to your account email up to 7 days before the
+                                renewal date. Off by default — turn it on only if you want it.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="subSaveBtn">Add subscription</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================
+         Delete confirmation modal
+         ================================================================== -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalTitle">Delete subscription</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="confirmError" class="alert alert-danger d-none" role="alert"></div>
+                    <p class="mb-0">
+                        Are you sure you want to delete
+                        <strong id="confirmSubName"></strong>? This can't be undone.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 </body>
