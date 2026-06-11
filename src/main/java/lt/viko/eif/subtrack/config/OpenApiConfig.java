@@ -8,18 +8,16 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import io.swagger.v3.oas.models.tags.Tag;
+import org.springdoc.core.customizers.OpenApiCustomizer; // Ensure you import this
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
-/**
- * OpenAPI (Swagger) configuration for SubTrack API documentation.
- *
- * <p>Registers the global JWT bearer-token security scheme so that every
- * secured endpoint shows an "Authorize" button in Swagger UI, and adds
- * server entries for local development.</p>
- */
 @Configuration
 public class OpenApiConfig {
 
@@ -58,5 +56,25 @@ public class OpenApiConfig {
                                         .bearerFormat("JWT")
                                         .description("Paste the JWT token returned by /api/auth/login. " +
                                                 "Format: `Bearer <token>` (the prefix is added automatically).")));
+    }
+
+    /**
+     * This customizer runs after Springdoc has scanned all controllers.
+     * It forces the final tag list to sort by preferred order.
+     */
+    @Bean
+    public OpenApiCustomizer sortTagsCustomizer() {
+        List<String> desiredOrder = List.of("Authentication", "Categories", "Subscriptions");
+
+        return openApi -> {
+            if (openApi.getTags() != null) {
+                List<Tag> sortedTags = new ArrayList<>(openApi.getTags());
+                sortedTags.sort(Comparator.comparingInt(tag -> {
+                    int index = desiredOrder.indexOf(tag.getName());
+                    return index != -1 ? index : Integer.MAX_VALUE;
+                }));
+                openApi.setTags(sortedTags);
+            }
+        };
     }
 }

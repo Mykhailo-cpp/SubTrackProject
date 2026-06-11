@@ -4,8 +4,8 @@ Feature: Subscription Management
   So that I can keep an accurate record of everything I pay for
 
   Background:
-    Given a registered user with username "subuser", email "subuser@example.com" and password "pass1234"
-    And the user is authenticated as "subuser" with password "pass1234"
+    Given a registered user with username "subuser", email "subuser@example.com" and password "P@ssword1!"
+    And the user is authenticated as "subuser" with password "P@ssword1!"
     And the category "Software" already exists
 
   Scenario: Successfully create a new subscription
@@ -39,9 +39,9 @@ Feature: Subscription Management
     Then the response status should be 404
 
   Scenario: Another user cannot access a subscription they do not own
-    Given a registered user with username "otheruser", email "other@example.com" and password "pass1234"
-    And the user is authenticated as "otheruser" with password "pass1234"
+    Given a registered user with username "otheruser", email "other@example.com" and password "P@ssword1!"
+    And the user is authenticated as "otheruser" with password "P@ssword1!"
     And the user has a subscription named "Private Sub" with price "8.00" and billing cycle "MONTHLY" in category "Software"
-    And the user is authenticated as "subuser" with password "pass1234"
+    And the user is authenticated as "subuser" with password "P@ssword1!"
     When the user requests the subscription owned by "otheruser" named "Private Sub"
     Then the response status should be 404

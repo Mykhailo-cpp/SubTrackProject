@@ -61,17 +61,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/api-docs/**",
-                                "/api/openapi.json"
-                        ).permitAll()
-                        .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/*.html",
-                                "/css/**",
-                                "/js/**",
-                                "/assets/**",
-                                "/favicon.ico"
+                                "/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

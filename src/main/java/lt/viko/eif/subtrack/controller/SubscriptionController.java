@@ -81,10 +81,6 @@ public class SubscriptionController {
         this.renewalReminderService = renewalReminderService;
     }
 
-    // -------------------------------------------------------------------------
-    // CRUD
-    // -------------------------------------------------------------------------
-
     /**
      * Returns all subscriptions for the authenticated user.
      *
@@ -402,10 +398,6 @@ public class SubscriptionController {
         return ResponseEntity.noContent().build();
     }
 
-    // -------------------------------------------------------------------------
-    // Aggregates / utilities
-    // -------------------------------------------------------------------------
-
     /**
      * Returns a spending summary for the authenticated user, grouped by category.
      *
@@ -526,10 +518,6 @@ public class SubscriptionController {
             @RequestParam String targetCurrency) {
         return ResponseEntity.ok(currencyService.convert(id, targetCurrency));
     }
-
-    // -------------------------------------------------------------------------
-    // Dev / test utilities
-    // -------------------------------------------------------------------------
 
     /**
      * Manually triggers the renewal-reminder job for testing purposes.

@@ -109,6 +109,15 @@ public class AuthSteps {
     // Shared authentication helper used from Background steps in other features
     // -------------------------------------------------------------------------
 
+    @When("the user requests a password reset for email {string}")
+    public void theUserRequestsPasswordResetForEmail(String email) throws Exception {
+        String body = objectMapper.writeValueAsString(Map.of("email", email));
+        ctx.setLastResult(
+                mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)));
+    }
+
     @Given("the user is authenticated as {string} with password {string}")
     public void theUserIsAuthenticatedAs(String username, String password) throws Exception {
         String body = objectMapper.writeValueAsString(

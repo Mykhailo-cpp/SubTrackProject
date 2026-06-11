@@ -9,5 +9,6 @@
     <include file="db/changelog/changes/002-create-categories-table.xml"/>
     <include file="db/changelog/changes/003-create-subscriptions-table.xml"/>
     <include file="db/changelog/changes/004-add-renewal-reminder-enabled.xml"/>
+    <include file="db/changelog/changes/005-create-password-reset-tokens.xml"/>
 
 </databaseChangeLog>
