@@ -238,12 +238,16 @@ public class SubscriptionSteps {
 
     /**
      * Resolves the database id of a category by name, creating it if absent.
+     *
+     * <p>GET /api/categories now returns a HATEOAS {@code CollectionModel}, so items
+     * are nested under {@code _embedded.categoryResponseList} rather than at the root.</p>
      */
     private long resolveCategoryId(String categoryName) throws Exception {
         MvcResult listResult = mockMvc.perform(get("/api/categories")
                         .header("Authorization", "Bearer " + ctx.getAuthToken()))
                 .andReturn();
-        List<?> cats = objectMapper.readValue(listResult.getResponse().getContentAsString(), List.class);
+        Map<?, ?> root = objectMapper.readValue(listResult.getResponse().getContentAsString(), Map.class);
+        List<?> cats = extractEmbeddedCategoryList(root);
         for (Object item : cats) {
             if (item instanceof Map<?, ?> m && categoryName.equals(m.get("name"))) {
                 return ((Number) m.get("id")).longValue();
@@ -259,6 +263,24 @@ public class SubscriptionSteps {
                 .andReturn();
         Map<?, ?> created = objectMapper.readValue(createResult.getResponse().getContentAsString(), Map.class);
         return ((Number) created.get("id")).longValue();
+    }
+
+    /**
+     * Extracts the list of categories from a
+     * {@code CollectionModel<EntityModel<CategoryResponse>>} response.
+     * Spring HATEOAS wraps items under {@code _embedded.<entityName>List}.
+     */
+    @SuppressWarnings("unchecked")
+    private List<?> extractEmbeddedCategoryList(Map<?, ?> root) {
+        if (root.containsKey("_embedded")) {
+            Map<?, ?> embedded = (Map<?, ?>) root.get("_embedded");
+            for (Object value : embedded.values()) {
+                if (value instanceof List) {
+                    return (List<?>) value;
+                }
+            }
+        }
+        return List.of();
     }
 
     /**

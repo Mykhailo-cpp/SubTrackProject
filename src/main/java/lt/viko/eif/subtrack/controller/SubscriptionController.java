@@ -190,10 +190,10 @@ public class SubscriptionController {
                     )
             )
     })
-    public EntityModel<SubscriptionResponse> getSubscription(
+    public ResponseEntity<EntityModel<SubscriptionResponse>> getSubscription(
             @Parameter(description = "ID of the subscription to retrieve", required = true, example = "1")
             @PathVariable Long id) {
-        return assembler.toModel(subscriptionService.getByIdForCurrentUser(id));
+        return ResponseEntity.ok(assembler.toModel(subscriptionService.getByIdForCurrentUser(id)));
     }
 
     /**
@@ -356,11 +356,11 @@ public class SubscriptionController {
                     )
             )
     })
-    public EntityModel<SubscriptionResponse> updateSubscription(
+    public ResponseEntity<EntityModel<SubscriptionResponse>> updateSubscription(
             @Parameter(description = "ID of the subscription to update", required = true, example = "1")
             @PathVariable Long id,
             @Valid @org.springframework.web.bind.annotation.RequestBody SubscriptionRequest request) {
-        return assembler.toModel(subscriptionService.update(id, request));
+        return ResponseEntity.ok(assembler.toModel(subscriptionService.update(id, request)));
     }
 
     /**
