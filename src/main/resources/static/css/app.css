@@ -1,0 +1,418 @@
+/* ==========================================================================
+   SubTrack — shared frontend stylesheet
+   Base layout, theme, navbar + sidebar shell. Loaded by every page on top of
+   Bootstrap 5. Page-specific styles belong in the page itself, not here.
+   ========================================================================== */
+
+:root {
+  /* Palette ---------------------------------------------------------------- */
+  --st-ink:        #0f2e2b;  /* sidebar background (deep teal) */
+  --st-ink-2:      #16403a;  /* sidebar hover / active surface */
+  --st-ink-line:   #21534b;  /* sidebar dividers */
+  --st-brand:      #0f766e;  /* primary actions */
+  --st-brand-700:  #0b5e57;
+  --st-accent:     #e2683c;  /* renewals, alerts, active marker */
+  --st-bg:         #f5f7f4;  /* app surface (warm off-white) */
+  --st-card:       #ffffff;
+  --st-text:       #16201f;
+  --st-muted:      #647471;
+  --st-border:     #e4e8e3;
+  --st-ring:       rgba(15, 118, 110, .30);
+
+  /* Type ------------------------------------------------------------------- */
+  --st-font-display: "Space Grotesk", system-ui, sans-serif;
+  --st-font-body:    "Inter", system-ui, sans-serif;
+  --st-font-mono:    "Space Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Metrics ---------------------------------------------------------------- */
+  --st-sidebar-w: 248px;
+  --st-radius:    14px;
+  --st-radius-sm: 10px;
+
+  /* Bootstrap overrides so its components inherit the brand ---------------- */
+  --bs-primary: var(--st-brand);
+  --bs-primary-rgb: 15, 118, 110;
+  --bs-link-color: var(--st-brand-700);
+  --bs-link-hover-color: var(--st-brand);
+  --bs-body-font-family: var(--st-font-body);
+  --bs-border-radius: var(--st-radius-sm);
+}
+
+/* Base --------------------------------------------------------------------- */
+body {
+  margin: 0;
+  background: var(--st-bg);
+  color: var(--st-text);
+  font-family: var(--st-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, .st-display {
+  font-family: var(--st-font-display);
+  letter-spacing: -0.01em;
+}
+
+.st-mono { font-family: var(--st-font-mono); }
+
+/* Money figures: the app's signature treatment. Tabular mono so columns of
+   prices line up like a ledger. */
+.st-money {
+  font-family: var(--st-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+a { text-decoration: none; }
+
+/* App shell ---------------------------------------------------------------- */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar ------------------------------------------------------------------ */
+.app-sidebar {
+  width: var(--st-sidebar-w);
+  /* !important: Bootstrap's .offcanvas-md sets `background: transparent !important`
+     above the md breakpoint, which would otherwise erase the sidebar colour and
+     leave the light logo text and logout button invisible on a light surface. */
+  background: var(--st-ink) !important;
+  color: #dcebe7;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+}
+
+@media (min-width: 768px) {
+  /* Persistent on desktop; Bootstrap's offcanvas-md handles small screens. */
+  .app-sidebar.offcanvas-md {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--st-ink) !important;
+  }
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 18px;
+  color: #fff;
+}
+.sidebar-brand .brand-mark {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(140deg, var(--st-brand) 0%, #1fb8a6 100%);
+  display: grid; place-items: center;
+  box-shadow: 0 2px 10px rgba(31, 184, 166, .35);
+}
+.sidebar-brand .brand-mark svg { width: 17px; height: 17px; }
+.sidebar-brand .brand-name {
+  font-family: var(--st-font-display);
+  font-weight: 700;
+  font-size: 1.16rem;
+  letter-spacing: -0.02em;
+}
+.sidebar-brand .brand-name span { color: var(--st-accent); }
+
+/* Monthly-spend chip — the one shared data element that states the app's job. */
+.spend-chip {
+  margin: 4px 0 18px;
+  padding: 12px 14px;
+  border-radius: var(--st-radius);
+  background: var(--st-ink-2);
+  border: 1px solid var(--st-ink-line);
+}
+.spend-chip .label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: #8fb3ac;
+}
+.spend-chip .amount {
+  font-family: var(--st-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  color: #fff;
+  margin-top: 2px;
+  line-height: 1.1;
+}
+.spend-chip .amount.is-loading { color: #6f928b; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar-nav .nav-label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: #6f928b;
+  padding: 6px 12px;
+}
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: var(--st-radius-sm);
+  color: #cfe2dd;
+  font-weight: 500;
+  font-size: .94rem;
+  transition: background .14s ease, color .14s ease;
+}
+.sidebar-nav a svg { width: 18px; height: 18px; opacity: .85; flex: none; }
+.sidebar-nav a:hover { background: var(--st-ink-2); color: #fff; }
+.sidebar-nav a.active {
+  background: var(--st-ink-2);
+  color: #fff;
+  position: relative;
+}
+.sidebar-nav a.active::before {
+  content: "";
+  position: absolute;
+  left: -16px; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--st-accent);
+}
+
+.sidebar-foot {
+  border-top: 1px solid var(--st-ink-line);
+  padding-top: 14px;
+  margin-top: 8px;
+}
+.sidebar-foot .who {
+  font-size: .8rem;
+  color: #9ec0b9;
+  padding: 0 12px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Explicit, always-visible logout button (don't rely on a faint outline). */
+.sidebar-foot [data-logout] {
+  --bs-btn-color: #fff;
+  --bs-btn-border-color: rgba(255, 255, 255, .28);
+  --bs-btn-bg: rgba(255, 255, 255, .08);
+  --bs-btn-hover-color: var(--st-ink);
+  --bs-btn-hover-bg: #ffffff;
+  --bs-btn-hover-border-color: #ffffff;
+  --bs-btn-active-color: var(--st-ink);
+  --bs-btn-active-bg: #ffffff;
+  --bs-btn-active-border-color: #ffffff;
+  font-weight: 600;
+}
+
+/* Main column -------------------------------------------------------------- */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar (navbar) ---------------------------------------------------------- */
+.app-topbar {
+  height: 60px;
+  background: rgba(255, 255, 255, .85);
+  backdrop-filter: saturate(140%) blur(8px);
+  border-bottom: 1px solid var(--st-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.app-topbar .topbar-title {
+  font-family: var(--st-font-display);
+  font-weight: 600;
+  font-size: 1.04rem;
+  margin: 0;
+}
+.app-topbar .topbar-brand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--st-font-display);
+  font-weight: 700;
+}
+.app-topbar .topbar-brand span { color: var(--st-accent); }
+.app-topbar .sidebar-toggle {
+  display: none;
+  border: 1px solid var(--st-border);
+  background: #fff;
+  border-radius: 10px;
+  width: 38px; height: 38px;
+  align-items: center; justify-content: center;
+}
+@media (max-width: 767.98px) {
+  .app-topbar .sidebar-toggle { display: inline-flex; }
+  .app-topbar .topbar-brand { display: flex; }
+  .app-topbar .topbar-title { display: none; }
+}
+
+.topbar-user .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-user .avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--st-brand);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: .8rem; font-weight: 600;
+  font-family: var(--st-font-display);
+}
+
+/* Content ------------------------------------------------------------------ */
+.app-content {
+  padding: 26px 24px 48px;
+  max-width: 1180px;
+  width: 100%;
+}
+.page-head { margin-bottom: 22px; }
+.page-head h1 {
+  font-size: 1.55rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.page-head p { color: var(--st-muted); margin: 0; }
+
+/* Reusable surfaces -------------------------------------------------------- */
+.st-card {
+  background: var(--st-card);
+  border: 1px solid var(--st-border);
+  border-radius: var(--st-radius);
+  padding: 22px;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--st-brand);
+  --bs-btn-border-color: var(--st-brand);
+  --bs-btn-hover-bg: var(--st-brand-700);
+  --bs-btn-hover-border-color: var(--st-brand-700);
+  --bs-btn-active-bg: var(--st-brand-700);
+  --bs-btn-active-border-color: var(--st-brand-700);
+}
+.btn-accent {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--st-accent);
+  --bs-btn-border-color: var(--st-accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #cf572d;
+  --bs-btn-hover-border-color: #cf572d;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--st-brand);
+  box-shadow: 0 0 0 .2rem var(--st-ring);
+}
+
+/* Empty / placeholder state used by stub pages and future tickets. */
+.st-placeholder {
+  border: 1px dashed var(--st-border);
+  border-radius: var(--st-radius);
+  background: #fff;
+  padding: 40px 28px;
+  text-align: center;
+  color: var(--st-muted);
+}
+.st-placeholder .tag {
+  display: inline-block;
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--st-brand-700);
+  background: rgba(15, 118, 110, .08);
+  border-radius: 999px;
+  padding: 4px 11px;
+  margin-bottom: 12px;
+}
+
+/* Accessibility ------------------------------------------------------------ */
+:focus-visible {
+  outline: 2px solid var(--st-brand);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ==========================================================================
+   Auth pages (login / register) — standalone, no app shell
+   ========================================================================== */
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+}
+@media (max-width: 860px) {
+  .auth-wrap { grid-template-columns: 1fr; }
+  .auth-aside { display: none !important; }
+}
+.auth-aside {
+  background:
+    radial-gradient(900px 500px at 18% 12%, #14403a 0%, transparent 60%),
+    var(--st-ink);
+  color: #dcebe7;
+  padding: 48px 44px;
+  display: flex;
+  flex-direction: column;
+}
+.auth-aside .brand {
+  display: flex; align-items: center; gap: 11px;
+  color: #fff; font-family: var(--st-font-display);
+  font-weight: 700; font-size: 1.25rem;
+}
+.auth-aside .brand span { color: var(--st-accent); }
+.auth-aside .brand .brand-mark {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(140deg, var(--st-brand) 0%, #1fb8a6 100%);
+  display: grid; place-items: center;
+}
+.auth-aside .brand .brand-mark svg { width: 19px; height: 19px; }
+.auth-aside .pitch {
+  margin-top: auto;
+}
+.auth-aside .pitch h2 {
+  font-size: 1.9rem; line-height: 1.18; color: #fff;
+  font-weight: 600; margin: 0 0 14px;
+}
+.auth-aside .pitch p { color: #a7c7c0; font-size: 1rem; max-width: 36ch; }
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: var(--st-bg);
+}
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+.auth-card .auth-mobile-brand {
+  display: none;
+  align-items: center; gap: 9px;
+  font-family: var(--st-font-display); font-weight: 700;
+  font-size: 1.2rem; margin-bottom: 26px;
+}
+.auth-card .auth-mobile-brand span { color: var(--st-accent); }
+@media (max-width: 860px) {
+  .auth-card .auth-mobile-brand { display: flex; }
+}
+.auth-card h1 {
+  font-size: 1.5rem; font-weight: 600; margin: 0 0 6px;
+}
+.auth-card .sub { color: var(--st-muted); margin-bottom: 22px; font-size: .95rem; }
+.auth-card .form-label { font-weight: 500; font-size: .88rem; }
+.auth-card .toggle-line {
+  margin-top: 18px; text-align: center;
+  font-size: .9rem; color: var(--st-muted);
+}
+.auth-card .toggle-line button {
+  background: none; border: none; padding: 0;
+  color: var(--st-brand-700); font-weight: 600; cursor: pointer;
+}
