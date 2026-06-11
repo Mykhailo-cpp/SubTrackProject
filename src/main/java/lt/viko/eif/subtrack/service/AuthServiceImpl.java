@@ -99,7 +99,6 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         userRepository.findByEmail(request.getEmail()).ifPresentOrElse(user -> {
-            // Delete any existing token for this user so only one is ever active
             tokenRepository.deleteByUser(user);
 
             String rawToken = UUID.randomUUID().toString();
@@ -145,7 +144,6 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        // Delete the token so it cannot be reused
         tokenRepository.delete(resetToken);
         log.info("Password successfully reset for user '{}'", user.getUsername());
     }
