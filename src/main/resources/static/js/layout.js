@@ -77,6 +77,9 @@
 
         '<div class="sidebar-foot">' +
           '<div class="who">Signed in as <strong>' + username + "</strong></div>" +
+          '<a href="change-password.html" class="btn btn-sm btn-outline-light w-100 mb-2">' +
+            "Change password" +
+          "</a>" +
           '<button type="button" class="btn btn-sm btn-outline-light w-100" data-logout>' +
             "Log out" +
           "</button>" +
@@ -105,6 +108,8 @@
             '<span class="d-none d-sm-inline">' + (username || "Account") + "</span>" +
           "</button>" +
           '<ul class="dropdown-menu dropdown-menu-end">' +
+            '<li><a class="dropdown-item" href="change-password.html">Change password</a></li>' +
+            '<li><hr class="dropdown-divider" /></li>' +
             '<li><button class="dropdown-item" type="button" data-logout>Log out</button></li>' +
           "</ul>" +
         "</div>" +
@@ -118,8 +123,7 @@
     var title = body.getAttribute("data-title") || "SubTrack";
     var username = Auth.getUsername();
 
-    // The page author puts the page body inside #page-content; we wrap it in
-    // the shell so every page gets the same navbar and sidebar.
+
     var content = document.getElementById("page-content");
     var contentHTML = content ? content.innerHTML : "";
 
