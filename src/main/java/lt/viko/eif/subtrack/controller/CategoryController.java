@@ -5,7 +5,6 @@ import lt.viko.eif.subtrack.dto.CategoryResponse;
 import lt.viko.eif.subtrack.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,6 +13,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,10 +25,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * REST controller exposing CRUD endpoints for categories under
@@ -35,7 +38,10 @@ import java.util.List;
  * <p>Categories are shared across all users, so these endpoints are not
  * user-scoped. Business rules — name uniqueness and existence checks — are
  * delegated to {@link CategoryService}, which raises the exceptions that map
- * to HTTP 409 (Conflict) and 404 (Not Found) respectively.</p>
+ * to HTTP 409 (Conflict) and 404 (Not Found) respectively. Responses are
+ * wrapped in HATEOAS models carrying {@code self} and {@code categories}
+ * links, satisfying Richardson Maturity Model Level 3. Link construction is
+ * delegated to {@link CategoryModelAssembler}.</p>
  */
 @RestController
 @RequestMapping("/api/categories")
@@ -45,25 +51,32 @@ public class CategoryController {
     /** Service encapsulating category business logic. */
     private final CategoryService categoryService;
 
+    /** Assembler that attaches HATEOAS links to responses. */
+    private final CategoryModelAssembler assembler;
+
     /**
-     * Creates the controller with its required service.
+     * Creates the controller with its required collaborators.
      *
      * @param categoryService the category service
+     * @param assembler       the HATEOAS model assembler
      */
-    public CategoryController(CategoryService categoryService) {
+    public CategoryController(CategoryService categoryService,
+                              CategoryModelAssembler assembler) {
         this.categoryService = categoryService;
+        this.assembler = assembler;
     }
 
     /**
      * Returns all categories.
      *
-     * @return HTTP 200 with the list of categories
+     * @return HTTP 200 with a collection model of link-enriched categories
      */
     @GetMapping
     @Operation(
             summary = "Get all categories",
             description = "Returns every category available in the system. " +
-                    "Categories are shared across all users and are not paginated."
+                    "Categories are shared across all users and are not paginated. " +
+                    "Each item is enriched with a `self` link and a `categories` collection link (HATEOAS)."
     )
     @ApiResponses({
             @ApiResponse(
@@ -71,25 +84,42 @@ public class CategoryController {
                     description = "List of categories returned (may be empty)",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = CategoryResponse.class)),
                             examples = @ExampleObject(value = """
-                                    [
-                                      { "id": 1, "name": "Streaming" },
-                                      { "id": 2, "name": "Software" },
-                                      { "id": 3, "name": "Cloud Storage" }
-                                    ]""")
+                                    {
+                                      "_embedded": {
+                                        "categoryResponseList": [
+                                          {
+                                            "id": 1,
+                                            "name": "Streaming",
+                                            "description": "Video and audio streaming",
+                                            "_links": {
+                                              "self":       { "href": "http://localhost:8080/api/categories/1" },
+                                              "categories": { "href": "http://localhost:8080/api/categories" }
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      "_links": {
+                                        "self": { "href": "http://localhost:8080/api/categories" }
+                                      }
+                                    }""")
                     )
             )
     })
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    public CollectionModel<EntityModel<CategoryResponse>> getAllCategories() {
+        List<EntityModel<CategoryResponse>> models =
+                categoryService.getAllCategories().stream()
+                        .map(assembler::toModel)
+                        .toList();
+        return CollectionModel.of(models,
+                linkTo(methodOn(CategoryController.class).getAllCategories()).withSelfRel());
     }
 
     /**
      * Returns a single category by id.
      *
      * @param id the category id
-     * @return HTTP 200 with the category; HTTP 404 if it does not exist
+     * @return HTTP 200 with the link-enriched category; HTTP 404 if it does not exist
      */
     @GetMapping("/{id}")
     @Operation(
@@ -104,7 +134,15 @@ public class CategoryController {
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = CategoryResponse.class),
                             examples = @ExampleObject(value = """
-                                    { "id": 1, "name": "Streaming" }""")
+                                    {
+                                      "id": 1,
+                                      "name": "Streaming",
+                                      "description": "Video and audio streaming",
+                                      "_links": {
+                                        "self":       { "href": "http://localhost:8080/api/categories/1" },
+                                        "categories": { "href": "http://localhost:8080/api/categories" }
+                                      }
+                                    }""")
                     )
             ),
             @ApiResponse(
@@ -117,18 +155,18 @@ public class CategoryController {
                     )
             )
     })
-    public ResponseEntity<CategoryResponse> getCategoryById(
+    public ResponseEntity<EntityModel<CategoryResponse>> getCategoryById(
             @Parameter(description = "ID of the category to retrieve", required = true, example = "1")
             @PathVariable Long id) {
-        return ResponseEntity.ok(categoryService.getCategoryById(id));
+        return ResponseEntity.ok(assembler.toModel(categoryService.getCategoryById(id)));
     }
 
     /**
      * Creates a new category.
      *
      * @param request the validated category details
-     * @return HTTP 201 with the created category and a {@code Location} header;
-     *         HTTP 409 if a category with the same name already exists
+     * @return HTTP 201 with the created category, a {@code Location} header,
+     *         and HATEOAS links; HTTP 409 if a category with the same name already exists
      */
     @PostMapping
     @Operation(
@@ -143,7 +181,7 @@ public class CategoryController {
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = CategoryRequest.class),
                     examples = @ExampleObject(value = """
-                            { "name": "Gaming" }""")
+                            { "name": "Gaming", "description": "Gaming subscriptions" }""")
             )
     )
     @ApiResponses({
@@ -154,7 +192,15 @@ public class CategoryController {
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = CategoryResponse.class),
                             examples = @ExampleObject(value = """
-                                    { "id": 4, "name": "Gaming" }""")
+                                    {
+                                      "id": 4,
+                                      "name": "Gaming",
+                                      "description": "Gaming subscriptions",
+                                      "_links": {
+                                        "self":       { "href": "http://localhost:8080/api/categories/4" },
+                                        "categories": { "href": "http://localhost:8080/api/categories" }
+                                      }
+                                    }""")
                     )
             ),
             @ApiResponse(
@@ -176,14 +222,13 @@ public class CategoryController {
                     )
             )
     })
-    public ResponseEntity<CategoryResponse> createCategory(
+    public ResponseEntity<EntityModel<CategoryResponse>> createCategory(
             @Valid @org.springframework.web.bind.annotation.RequestBody CategoryRequest request) {
-        CategoryResponse created = categoryService.createCategory(request);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(created.id())
-                .toUri();
-        return ResponseEntity.created(location).body(created);
+        EntityModel<CategoryResponse> model =
+                assembler.toModel(categoryService.createCategory(request));
+        return ResponseEntity
+                .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
+                .body(model);
     }
 
     /**
@@ -191,7 +236,7 @@ public class CategoryController {
      *
      * @param id      the id of the category to update
      * @param request the validated new category details
-     * @return HTTP 200 with the updated category; HTTP 404 if it does not exist;
+     * @return HTTP 200 with the updated, link-enriched category; HTTP 404 if it does not exist;
      *         HTTP 409 if the new name collides with another category
      */
     @PutMapping("/{id}")
@@ -218,7 +263,15 @@ public class CategoryController {
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = CategoryResponse.class),
                             examples = @ExampleObject(value = """
-                                    { "id": 1, "name": "Entertainment" }""")
+                                    {
+                                      "id": 1,
+                                      "name": "Entertainment",
+                                      "description": null,
+                                      "_links": {
+                                        "self":       { "href": "http://localhost:8080/api/categories/1" },
+                                        "categories": { "href": "http://localhost:8080/api/categories" }
+                                      }
+                                    }""")
                     )
             ),
             @ApiResponse(
@@ -249,11 +302,11 @@ public class CategoryController {
                     )
             )
     })
-    public ResponseEntity<CategoryResponse> updateCategory(
+    public ResponseEntity<EntityModel<CategoryResponse>> updateCategory(
             @Parameter(description = "ID of the category to update", required = true, example = "1")
             @PathVariable Long id,
             @Valid @org.springframework.web.bind.annotation.RequestBody CategoryRequest request) {
-        return ResponseEntity.ok(categoryService.updateCategory(id, request));
+        return ResponseEntity.ok(assembler.toModel(categoryService.updateCategory(id, request)));
     }
 
     /**
