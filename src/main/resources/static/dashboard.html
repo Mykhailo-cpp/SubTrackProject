@@ -12,26 +12,454 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
 
-    <!-- Order matters; defer keeps them sequential and runs before the shell mounts. -->
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script defer src="js/config.js"></script>
     <script defer src="js/auth.js"></script>
     <script defer src="js/api.js"></script>
     <script defer src="js/layout.js"></script>
+    <script defer src="js/dashboard.js"></script>
+
+    <style>
+        /* ── Dashboard layout ─────────────────────────────────────────── */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+        }
+
+        /* Chart card occupies the left column, two rows tall */
+        .dash-chart-card {
+            grid-column: 1;
+            grid-row: 1 / 3;
+        }
+
+        /* Currency + summary cards fill the right column */
+        .dash-right {
+            grid-column: 2;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Renewals span the full width on the bottom */
+        .dash-renewals-card {
+            grid-column: 1 / -1;
+            grid-row: 3;
+        }
+
+        @media (max-width: 900px) {
+            .dash-grid {
+                grid-template-columns: 1fr;
+            }
+            .dash-chart-card,
+            .dash-right,
+            .dash-renewals-card {
+                grid-column: 1;
+                grid-row: auto;
+            }
+        }
+
+        /* ── Section labels ───────────────────────────────────────────── */
+        .dash-section-label {
+            font-size: .7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--st-muted);
+            margin: 0 0 12px;
+        }
+
+        /* ── Chart card ───────────────────────────────────────────────── */
+        .dash-chart-card .card-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .dash-chart-card .card-title {
+            font-family: var(--st-font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+        }
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            aspect-ratio: 1;
+        }
+        .chart-centre {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .chart-centre .centre-label {
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--st-muted);
+            line-height: 1;
+        }
+        .chart-centre .centre-value {
+            font-family: var(--st-font-mono);
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--st-text);
+            margin-top: 3px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Chart legend */
+        .chart-legend {
+            list-style: none;
+            padding: 0;
+            margin: 22px 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chart-legend li {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: .88rem;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex: none;
+        }
+        .legend-name {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .legend-amount {
+            font-family: var(--st-font-mono);
+            font-size: .84rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--st-muted);
+            white-space: nowrap;
+        }
+
+        /* ── Currency selector card ───────────────────────────────────── */
+        .currency-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .currency-row label {
+            font-size: .84rem;
+            font-weight: 500;
+            color: var(--st-text);
+            white-space: nowrap;
+        }
+        .currency-select {
+            width: 110px;
+        }
+        .currency-converting {
+            font-size: .8rem;
+            color: var(--st-muted);
+            display: none;
+        }
+        .currency-converting.visible { display: inline; }
+
+        /* ── Spend summary cards ──────────────────────────────────────── */
+        .spend-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .spend-card-item {
+            background: var(--st-bg);
+            border: 1px solid var(--st-border);
+            border-radius: var(--st-radius-sm);
+            padding: 14px 16px;
+        }
+        .spend-card-item .sci-currency {
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--st-brand);
+            margin-bottom: 8px;
+        }
+        .spend-card-item .sci-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .spend-card-item .sci-row + .sci-row {
+            margin-top: 5px;
+        }
+        .spend-card-item .sci-period {
+            font-size: .78rem;
+            color: var(--st-muted);
+        }
+        .spend-card-item .sci-amount {
+            font-family: var(--st-font-mono);
+            font-size: .98rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            color: var(--st-text);
+        }
+        .spend-card-item .sci-converted {
+            font-family: var(--st-font-mono);
+            font-size: .82rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--st-muted);
+        }
+
+        /* ── Renewals list ────────────────────────────────────────────── */
+        .renewals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .renewal-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--st-border);
+        }
+        .renewal-row:last-child { border-bottom: none; }
+
+        .renewal-days {
+            width: 46px;
+            height: 46px;
+            border-radius: var(--st-radius-sm);
+            background: rgba(226, 104, 60, .10);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+        }
+        .renewal-days .rd-num {
+            font-family: var(--st-font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--st-accent);
+            line-height: 1;
+        }
+        .renewal-days .rd-unit {
+            font-size: .6rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--st-accent);
+            opacity: .8;
+        }
+        .renewal-days.is-today {
+            background: rgba(15, 118, 110, .10);
+        }
+        .renewal-days.is-today .rd-num,
+        .renewal-days.is-today .rd-unit {
+            color: var(--st-brand);
+        }
+
+        .renewal-info { flex: 1; min-width: 0; }
+        .renewal-name {
+            font-weight: 600;
+            font-size: .94rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .renewal-meta {
+            font-size: .78rem;
+            color: var(--st-muted);
+            margin-top: 1px;
+        }
+
+        .renewal-price {
+            font-family: var(--st-font-mono);
+            font-size: .9rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--st-text);
+            white-space: nowrap;
+            text-align: right;
+        }
+        .renewal-price .rp-converted {
+            display: block;
+            font-size: .76rem;
+            color: var(--st-muted);
+        }
+
+        /* ── Empty / loading states ───────────────────────────────────── */
+        .dash-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 64px 24px;
+        }
+        .dash-empty .empty-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: rgba(15, 118, 110, .08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+        }
+        .dash-empty .empty-icon svg {
+            width: 30px;
+            height: 30px;
+            color: var(--st-brand);
+        }
+        .dash-empty h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+        .dash-empty p {
+            color: var(--st-muted);
+            max-width: 38ch;
+            margin: 0 auto 20px;
+        }
+
+        .dash-loading {
+            grid-column: 1 / -1;
+            padding: 60px 0;
+            text-align: center;
+            color: var(--st-muted);
+        }
+        .dash-loading .spinner-border {
+            width: 1.6rem;
+            height: 1.6rem;
+            border-width: 2px;
+            color: var(--st-brand);
+        }
+
+        .dash-error {
+            grid-column: 1 / -1;
+        }
+    </style>
 </head>
 <body data-page="dashboard" data-title="Dashboard">
-<!-- The layout wraps everything below in the navbar + sidebar shell. -->
 <div id="page-content">
     <div class="page-head">
         <h1>Dashboard</h1>
-        <p>Your spending at a glance.</p>
+        <p>Your subscription spending at a glance.</p>
     </div>
 
-    <div class="st-placeholder">
-        <span class="tag">Ticket #27</span>
-        <h2 class="h5 mb-2">Spending analytics dashboard</h2>
-        <p class="mb-0">Chart.js breakdowns of monthly and yearly spend by category will render here.<br />
-            The base layout, navigation, and auth are ready for this view to build on.</p>
+    <!-- Loading -->
+    <div id="dashLoading" class="dash-loading">
+        <div class="spinner-border mb-3" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+        <div>Loading your subscriptions…</div>
+    </div>
+
+    <!-- Error -->
+    <div id="dashError" class="alert alert-danger d-none" role="alert"></div>
+
+    <!-- Empty state -->
+    <div id="dashEmpty" class="st-card dash-empty d-none">
+        <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Z"/>
+                <path d="M12 8v4l3 3"/>
+            </svg>
+        </div>
+        <h2>No subscriptions yet</h2>
+        <p>Add your first subscription and your spending breakdown will appear here automatically.</p>
+        <a href="subscriptions.html" class="btn btn-primary">+ Add your first subscription</a>
+    </div>
+
+    <!-- Main dashboard grid -->
+    <div id="dashContent" class="dash-grid d-none">
+
+        <!-- ── Left: Doughnut chart ──────────────────────────────────── -->
+        <div class="st-card dash-chart-card">
+            <div class="card-head">
+                <h2 class="card-title">Spend by category</h2>
+                <span id="chartCurrencyNote" class="badge rounded-pill"
+                      style="background:rgba(15,118,110,.1);color:var(--st-brand);font-size:.7rem;"></span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="spendChart" aria-label="Spending breakdown by category"></canvas>
+                <div class="chart-centre">
+                    <span class="centre-label">monthly</span>
+                    <span class="centre-value" id="chartCentreTotal">—</span>
+                </div>
+            </div>
+            <ul class="chart-legend" id="chartLegend" aria-label="Category legend"></ul>
+        </div>
+
+        <!-- ── Right column ──────────────────────────────────────────── -->
+        <div class="dash-right">
+
+            <!-- Currency selector -->
+            <div class="st-card">
+                <p class="dash-section-label">Display currency</p>
+                <div class="currency-row">
+                    <label for="currencySelect">Convert prices to</label>
+                    <select class="form-select form-select-sm currency-select" id="currencySelect">
+                        <option value="">Original</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                        <option value="GBP">GBP</option>
+                        <option value="JPY">JPY</option>
+                        <option value="CHF">CHF</option>
+                        <option value="CAD">CAD</option>
+                        <option value="AUD">AUD</option>
+                        <option value="PLN">PLN</option>
+                        <option value="SEK">SEK</option>
+                        <option value="NOK">NOK</option>
+                    </select>
+                    <span class="currency-converting" id="currencyConverting" aria-live="polite">
+                        Converting…
+                    </span>
+                </div>
+                <div id="currencyError" class="d-none"
+                     style="margin-top:10px;font-size:.82rem;color:#b1481f;background:rgba(226,104,60,.08);
+                            border-radius:8px;padding:8px 12px;line-height:1.4;"
+                     role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Spend summary cards per currency -->
+            <div class="st-card">
+                <p class="dash-section-label">Totals</p>
+                <div class="spend-cards" id="spendCards">
+                    <!-- Injected by dashboard.js -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Bottom: Upcoming renewals ─────────────────────────────── -->
+        <div class="st-card dash-renewals-card">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;">
+                <h2 class="card-title" style="font-family:var(--st-font-display);font-weight:600;font-size:1rem;margin:0;">
+                    Upcoming renewals
+                </h2>
+                <span class="badge rounded-pill"
+                      style="background:rgba(226,104,60,.1);color:var(--st-accent);font-size:.7rem;"
+                      id="renewalsBadge"></span>
+            </div>
+
+            <!-- Empty renewals -->
+            <div id="renewalsEmpty" class="d-none" style="color:var(--st-muted);font-size:.9rem;padding:10px 0;">
+                No renewals due in the next 30 days. Enjoy the quiet!
+            </div>
+
+            <!-- Renewals list -->
+            <div class="renewals-list" id="renewalsList"></div>
+        </div>
     </div>
 </div>
 </body>
