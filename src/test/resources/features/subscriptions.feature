@@ -10,15 +10,15 @@ Feature: Subscription Management
 
   Scenario: Successfully create a new subscription
     When the user creates a subscription with the following details:
-      | name           | price | currency | billingCycle | nextRenewalDate | active | categoryName |
-      | GitHub Copilot | 10.00 | USD      | MONTHLY      | 2026-07-01      | true   | Software     |
+      | name           | price | currency | billingCycle | nextRenewalDate | active | renewalReminderEnabled | categoryName |
+      | GitHub Copilot | 10.00 | USD      | MONTHLY      | 2026-07-01      | true   | true                   | Software     |
     Then the response status should be 201
     And the response body should contain the subscription name "GitHub Copilot"
 
   Scenario: List all subscriptions for the authenticated user
     When the user creates a subscription with the following details:
-      | name      | price | currency | billingCycle | nextRenewalDate | active | categoryName |
-      | JetBrains | 24.90 | EUR      | MONTHLY      | 2026-07-15      | true   | Software     |
+      | name      | price | currency | billingCycle | nextRenewalDate | active | renewalReminderEnabled | categoryName |
+      | JetBrains | 24.90 | EUR      | MONTHLY      | 2026-07-15      | true   | false                  | Software     |
     And the user requests all their subscriptions
     Then the response status should be 200
     And the subscription list should contain "JetBrains"

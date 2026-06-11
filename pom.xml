@@ -8,7 +8,7 @@
 		<version>3.5.14</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.subtrack</groupId>
+	<groupId>lt.viko.eif.subtrack</groupId>
 	<artifactId>Subtrack</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
