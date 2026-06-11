@@ -169,9 +169,9 @@
     renderTable();
   }
 
-  // ---------------------------------------------------------------------------
+
   // Rendering
-  // ---------------------------------------------------------------------------
+
 
   /* Toggle the three mutually exclusive page states: loading, error, content.
    * The empty state is handled inside renderTable since it's part of content. */
@@ -289,9 +289,8 @@
     );
   }
 
-  // ---------------------------------------------------------------------------
   // Modal: create / edit
-  // ---------------------------------------------------------------------------
+
 
   /* Populate the category <select> from the cached categories. When none exist
    * yet we leave a disabled hint so the user knows to create one first. */
@@ -453,9 +452,9 @@
     }
   }
 
-  // ---------------------------------------------------------------------------
+
   // Delete (with confirmation)
-  // ---------------------------------------------------------------------------
+
 
   var pendingDeleteId = null;
 
@@ -495,9 +494,9 @@
     }
   }
 
-  // ---------------------------------------------------------------------------
+
   // Wiring
-  // ---------------------------------------------------------------------------
+
 
   var confirmModal;
 
@@ -553,7 +552,7 @@
       if (th) th.addEventListener("click", function () { onSortClick(key); });
     });
 
-    // Submit the form on Enter inside the modal.
+    // Submit the form on Enter inside the modal
     document
       .getElementById("subForm")
       .addEventListener("submit", function (e) {
@@ -561,7 +560,7 @@
         save();
       });
 
-    // Event delegation for the per-row edit / delete buttons.
+    // Event delegation for the per-row edit / delete buttons
     el.tbody.addEventListener("click", function (e) {
       var editBtn = e.target.closest("[data-edit]");
       if (editBtn) {
@@ -575,11 +574,6 @@
     });
   }
 
-  // Start once the layout has rebuilt #page-content. Every script here is
-  // deferred and runs in order, so layout.js may mount and dispatch
-  // `layout:ready` *before* this script registers its listener. To avoid
-  // missing that event we listen for it AND poll for the shell, starting as
-  // soon as it appears. The `started` guard keeps this from running twice.
   var started = false;
   function start() {
     if (started) return;

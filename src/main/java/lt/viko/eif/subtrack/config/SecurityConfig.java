@@ -57,6 +57,19 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Static frontend — served by this same app and must be
+                        // reachable without a JWT. Pages guard themselves client-side
+                        // (auth.js) and the API calls they make carry the token.
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/*.html",
+                                "/css/**",
+                                "/js/**",
+                                "/favicon.ico",
+                                "/error"
+                        ).permitAll()
+                        // Public API + docs.
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",

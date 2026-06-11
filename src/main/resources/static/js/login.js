@@ -66,8 +66,7 @@
     submitBtn.textContent = mode === "login" ? "Signing in…" : "Creating…";
 
     try {
-      // Call the auth endpoint directly: a 401/400 here means bad input, which
-      // we want to surface inline rather than trigger the global redirect.
+
       var res = await fetch(cfg.API_BASE + path, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -114,6 +113,33 @@
     toggleBtn.addEventListener("click", function () {
       setMode(mode === "login" ? "register" : "login");
     });
+
+    // Show / hide password toggles (eye button).
+    var EYE =
+      '<svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
+    var EYE_OFF =
+      '<svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>' +
+      '<line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+    Array.prototype.forEach.call(
+      document.querySelectorAll("[data-toggle-pw]"),
+      function (btn) {
+        btn.innerHTML = EYE;
+        btn.addEventListener("click", function () {
+          var input = qs(btn.getAttribute("data-toggle-pw"));
+          if (!input) return;
+          var reveal = input.type === "password";
+          input.type = reveal ? "text" : "password";
+          btn.innerHTML = reveal ? EYE_OFF : EYE;
+          btn.setAttribute("aria-pressed", reveal ? "true" : "false");
+          btn.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+        });
+      }
+    );
 
     setMode("login");
   });
