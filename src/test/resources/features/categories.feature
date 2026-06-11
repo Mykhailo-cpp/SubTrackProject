@@ -4,8 +4,8 @@ Feature: Category Management
   So that I can organise my subscriptions into meaningful groups
 
   Background:
-    Given a registered user with username "catuser", email "catuser@example.com" and password "pass1234"
-    And the user is authenticated as "catuser" with password "pass1234"
+    Given a registered user with username "catuser", email "catuser@example.com" and password "P@ssword1!"
+    And the user is authenticated as "catuser" with password "P@ssword1!"
 
   Scenario: Successfully create a new category
     When the user creates a category with name "Streaming" and description "Video streaming services"

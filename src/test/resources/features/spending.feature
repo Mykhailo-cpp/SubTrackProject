@@ -4,8 +4,8 @@ Feature: Spending Summary
   So that I know how much I spend on subscriptions each month
 
   Background:
-    Given a registered user with username "spenduser", email "spenduser@example.com" and password "pass1234"
-    And the user is authenticated as "spenduser" with password "pass1234"
+    Given a registered user with username "spenduser", email "spenduser@example.com" and password "P@ssword1!"
+    And the user is authenticated as "spenduser" with password "P@ssword1!"
     And the category "Entertainment" already exists
 
   Scenario: Monthly subscription appears at its original price in the summary
